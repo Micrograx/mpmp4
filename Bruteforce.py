@@ -1,8 +1,11 @@
 from numba import jit,cuda
 import numpy as np
 from timeit import default_timer as timer
-#We need to import numpy and numba to get the improved perfromance and run the
-#Code in 30 minutes compared to 2-3 days :)
+# We need to import numpy and numba to get the improved perfromance and run the
+# Code in 30 minutes compared to 2-3 days :)
+# Update: By separating the code that checks if a sequence
+# Has 2 consecutive equal instructions, we can achieve
+# A runtime of 8 minutes YAY!!
 
 # Initialize all the possible card combinations
 def initialize(count):
@@ -26,7 +29,8 @@ def change_base(numero, bites, base):
 
 # Main function to check all possible instructions
 @jit(nopython=True)
-def trabajar(initialCards, count):
+def trabajar(initialCards):
+    count = len(initialCards[0])
     c_ind = (2**count) - 1
     intento  = count**(c_ind - 2)
     contador = 0
@@ -35,33 +39,34 @@ def trabajar(initialCards, count):
     while(intento < (count**c_ind)):
         newCards = initialCards.copy()
         sequence = change_base(intento, c_ind, count)
-
-        # For every card combination
-        for j in range(len(newCards)):
-            # Try the proposed instructions
-            for i in range(len(sequence)):
-                temp = count if i == 0 else sequence[i-1]
-                # If two consecutives instructions are equal, abort and check next instructions
-                if (sequence[i] == temp):
-                    break
-                newCards[j][sequence[i]] = 1 if newCards[j][sequence[i]] == 0 else 0
-                # If after any instruction we have all cards face down, dont continue turning cards
-                if(np.count_nonzero(newCards[j]) == 0):
-                    break
-            # If after executing all instructions we dont have all cards face down
-            # Dont even bother trying to analyze the other combinations
-            if(np.count_nonzero(newCards[j]) != 0):
+        valid = True
+        for i in range(len(sequence) - 2):
+            # If two consecutives instructions are equal, abort and check next instructions
+            if (sequence[i] == sequence[i+1]):
+                valid = False
                 break
 
-        # When we find a set of instructions that work on all card combinations, save it
-        if (int(np.count_nonzero(newCards)) == 0):
-            print("-------------------------------", contador)
-            print(sequence)
-            contador = contador + 1
-            res.append(sequence)
+        if (valid):
+            # For every card combination
+            for j in range(len(newCards)):
+                # Try the proposed instructions
+                for i in range(len(sequence)):
+                    newCards[j][sequence[i]] = 1 if newCards[j][sequence[i]] == 0 else 0
+                    # If after any instruction we have all cards face down, dont continue turning cards
+                    if(np.count_nonzero(newCards[j]) == 0):
+                        break
+                # If after executing all instructions we dont have all cards face down
+                # Dont even bother trying to analyze the other combinations
+                if(np.count_nonzero(newCards[j]) != 0):
+                    break
+
+            # When we find a set of instructions that work on all card combinations, save it
+            if (int(np.count_nonzero(newCards)) == 0):
+                print("-------------------------------", contador)
+                print(sequence)
+                contador = contador + 1
+                res.append(sequence)
         intento = intento + 1
-        if (intento % 1000000) == 0:
-            print(intento)
     return res
 
 
@@ -70,13 +75,13 @@ if __name__ == "__main__":
     # Using jit(nopython)
     initialCards = initialize(2)
     start = timer()
-    trabajar(initialCards, 2)
+    trabajar(initialCards)
     print("Time Elapsed: ", timer()-start)
 
     #Then we run the function with the desired card ammount
     secondCards = initialize(4)
     start = timer()
-    finales = trabajar(secondCards, 4)
+    finales = trabajar(secondCards)
     print("Time Elapsed2: {}".format(timer()-start))
     with open("Solutions/4cards.txt", "a+") as file_object:
         for item in finales:
