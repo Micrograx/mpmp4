@@ -40,6 +40,10 @@ So, if we have a "perfect" sequence that after each move would have the maximum 
 
 So now we can easily explain that, if we have two consecutive instructions beeing equal (lets call them I0 and I1), I0 may be able to get the maximum of 1 combinations to the goal, but I1 will revert all resting combinations to the original state before we even do I0 so it will not complete any combination and therefore the sequence will not be of minimum lenght.
 
+Now, we can calculate all possible sequences of length 15 as 4^15 = `1.073.741.824`, we can start at 4^13 as mentioned above and that leaves us with 4^15 - 4^13 = `1.006.632.960` sequences to test. We can further calculate how many of those sequences doesn´t contain two equal consecutive instructions as 4*3^14 = 19.131.876 or arround 2% of the total sequences. That means that in order to optimize the algorithm further, we have to concentrate in how to detect invalid sequences.
+
+That´s why in my last commit I have separated the code that checks duplicate instructions from the code that executes them, in order to decrease the ammount of operations we execute. This change ammounted to a big decrease in runtime: It went down from 30 minutes down to 8. As before we executed between 2 comparissons and 1 assignation and 52 comparissons and 26 assignations for every invalid sequence (98% of the total possibilities). With the new code we are executing between 1 comparisson and 1 assignation and 14 comparissons and 1 assignation.
+
 ## The recursive algorithm
 This recursive algorithm is capable of generating one valid sequence for any number of cards (small enought to fit in memory).
 It works by generating a trivial solution for a 1 card game (only one instruction of character `0`) and then builds the rest of sequences based on that.
